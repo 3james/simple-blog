@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<title>HTML5</title>
+<meta charset="UTF-8" />
+<script type="text/javascript">
+var db = null;
+
+// 1. 데이터베이스 생성 및 오픈
+function openDB(){
+	db = window.openDatabase("bookmarkDB", "1", "북마크DB", 1024*1024, function(database){
+		log("bookmarkDB 생성 완료");
+		db = database;
+		createTable();
+	});
+}
+
+var createSQL = "create table if not exists bookmark("
+	+ " _no integer primary key autoincrement,"
+	+ " type test,"
+	+ " name text,"
+	+ " url text"
+	+ ")";
+
+// 테이블 생성
+function createTable(){
+	// 2. 트랜젝션 시작
+	db.transaction(function(tx){
+		log("트랜젝션 시작");
+		// 3. SQL 실행
+		tx.executeSql(createSQL, [], function(){
+			// 4. 결과 처리
+			log("테이블 생성 성공");
+		}, function(){
+			log("테이블 생성 실패");
+		});
+	}, function(error){
+		log("트랜젝션 실패");
+	}, function(){
+		log("트랜젝션 성공");
+	});
+}
+
+var selectSQL = "select * from bookmark";
+
+// 북마크 목록 조회
+function listBookmark(){
+	// 2. 트랜젝션 시작, SQL 실행, 결과 처리
+	db.transaction(function(tx){
+		tx.executeSql(selectSQL, [], function(tx, rs){
+			log("북마크 조회 성공: " + rs.rows.length + "건.");
+			for(var i=0; i<rs.rows.length; i++){
+				var row = rs.rows.item(i);
+				log(row._no + ", " + row.type + ", " + row.name + ", '" + row.url);
+			}
+		});
+	});
+}
+
+window.onload = function(){
+	openDB();
+	listBookmark();
+}
+
+function log(msg){
+	document.getElementById("log").innerHTML += msg + "<br>";
+}
+
+</script>
+</head>
+<body>
+	<h1>Web SQL Database !!!</h1>	
+	<div id="log"></div>
+</body>
+</html>

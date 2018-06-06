@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rose.sns.usermgr.dao.UserManagerDAO"> 
+
+	<select id="selectUser" parameterType="String" resultType="UserManagerVO">
+
+		select id, 
+		         name, 
+		         age, 
+		         sex
+		from   txsns_user
+		where id = #{id}
+
+	</select>
+
+	<select id="selectUserList" resultType="UserManagerVO">
+	
+		select id, 
+		         name, 
+		         age, 
+		         sex
+		from   txsns_user
+		
+	</select>
+
+	<insert id="insertUser" parameterType="UserManagerVO">
+
+		insert into 
+		txsns_user (
+		    id,
+		    name,
+		    age,
+		    sex
+		) values (
+		    #{id},
+		    #{name},
+		    #{age},
+		    #{sex}
+		)
+
+	</insert>
+
+</mapper>

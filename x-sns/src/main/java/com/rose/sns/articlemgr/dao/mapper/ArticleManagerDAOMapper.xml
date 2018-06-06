@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rose.sns.articlemgr.dao.ArticleManagerDAO"> 
+
+	<resultMap id="ArticleManagerVOMap" type="ArticleManagerVO" >
+		<id property="articleId" column="article_id" javaType="java.lang.String" />
+		<result property="content" column="content" javaType="java.lang.String" />
+		<result property="createDate" column="create_date" javaType="java.lang.String" />
+		<result property="modifyDate" column="modify_date" javaType="java.lang.String" />
+	</resultMap>
+
+	<select id="selectArticle" parameterType="String" resultMap="ArticleManagerVOMap">
+
+		select article_id, 
+		         content,
+		         create_date,
+		         modify_date
+		from   txsns_article
+		where article_id = #{articleId}
+
+	</select>
+
+	<select id="selectArticleList" resultMap="ArticleManagerVOMap">
+	
+		select article_id, 
+		         content,
+		         create_date,
+		         modify_date
+		from   txsns_article
+		order by create_date desc
+		
+	</select>
+
+	<insert id="insertArticle" parameterType="ArticleManagerVO">
+
+		insert into 
+		txsns_article (
+		    article_id,
+		    content,
+	        create_date
+		) values (
+		    #{articleId},
+		    #{content},
+		    #{createDate}
+		)
+
+	</insert>
+	
+	<insert id="updateArticle" parameterType="ArticleManagerVO">
+
+		update txsns_article set content = #{content},
+	                                     modify_date = #{modifyDate}
+		where article_id = #{articleId}
+
+	</insert>	
+	
+	<delete id="deleteArticle" parameterType="String">
+
+		delete from txsns_article 
+        where article_id = #{articleId}
+
+	</delete>
+
+</mapper>

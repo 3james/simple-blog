@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8"> 
+	<title>PLAYGROUND</title>
+	<link href="\doc\css\main.css" rel="stylesheet" type="text/css" />
+	<link href="\doc\js\jquery\ui\1.11.4\jquery-ui.css" rel="stylesheet" type="text/css" />
+	<link href="\doc\js\jquery\ui\1.11.4\jquery-ui.theme.css" rel="stylesheet" type="text/css" />
+	<link href="\doc\js\jquery\ui\1.11.4\jquery-ui.structure.css" rel="stylesheet" type="text/css" />
+	<link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+	<script src="\doc\js\jquery\jquery-1.11.3.js"></script>
+	<script src="\doc\js\jquery\ui\1.11.4\jquery-ui.js"></script>
+	<script src="\doc\tools\smarteditor\js\HuskyEZCreator.js" charset="utf-8"></script>
+	<script type="text/javascript">
+	
+	    var oEditors = [];
+	
+		$(document).ready(function () {
+			fn_makeLayout();
+			fn_initializeEvents();
+			fn_onload();
+		});
+		
+		function fn_makeLayout() {
+			$('#common_area').load('/main/common.do');
+			$('#write_button_area').hide();
+		}
+		
+		function fn_initializeEvents() {
+			fn_writeButtonInitializeEvents();
+		}
+		
+		function fn_writeButtonInitializeEvents() {
+			$('#write_button').click(function (event) {
+				fn_articleEditorDialogPopupForNew();
+			});
+		}
+		
+		function fn_articleEditorDialogPopupForNew() {
+			$('#dialog-form').empty();
+			var textEditor = '<textarea id="editor" rows="14" autofocus></textarea>';
+			var article = $('<article id="article_write"></article>').append(textEditor);
+			$('#dialog-form').append(article);
+			
+			oEditors = [];
+			nhn.husky.EZCreator.createInIFrame({
+			    oAppRef: oEditors,
+			    elPlaceHolder: "editor",
+			    sSkinURI: "/doc/tools/smarteditor/SmartEditor2Skin.html",
+			    fCreator: "createSEditor2",
+ 		        fOnAppLoad: function() { 
+ 		        	oEditors.getById["editor"].exec("FOCUS", []);
+ 		        	oEditors.getById["editor"].exec("MSG_EDITING_AREA_RESIZE_ENDED", []);
+ 		        } 
+			});
+			
+			dialog = $("#dialog-form").dialog({
+			     width: 774,
+			     modal: true,
+			     buttons: {
+			         save: function() {
+			        	 fn_articleEditorSaveButtonClickEvent();
+			         },
+			         close: function() {
+			        	 $(this).dialog( "close" );
+			         }
+			     }
+			});			
+		}
+		
+		function fn_articleEditorSaveButtonClickEvent() {
+			$('#dialog-confirm-save').css('visibility', 'visible');
+		    $('#dialog-confirm-save').dialog({
+		    	dialogClass: "dialog-confirm-style",
+		        resizable: false,
+		        height:130,
+		        modal: true,
+		        buttons: {
+		            OK: function() {
+		                $(this).dialog("close");
+		                $("#dialog-form").dialog( "close" );
+		            	fn_createArticle();
+		            },
+		            Cancel: function() {
+		                $(this).dialog("close");
+		            }
+		        }
+		    });					
+		}		
+		
+		function fn_createArticle() {
+            // 에디터의 내용이 textarea에 적용된다.
+            oEditors.getById["editor"].exec("UPDATE_CONTENTS_FIELD", []);
+            var editorValue = $('#editor').val();
+            $('#article_form > input[name="articleContent"]').val(editorValue);
+            $.ajax({
+            	url :  '/articlemgr/createarticle.ajax',
+            	type : 'post',
+            	data : $('#article_form').serialize(),
+            	success : function(data) {
+            		fn_getArticleList();
+            		$('html, body').animate({scrollTop:0}, 100);
+            	}
+            });
+		}
+		
+		function fn_onload() {
+			fn_getArticleList();
+		}
+		
+		function fn_getArticleList() {
+            $.ajax({
+         	    url : '/articlemgr/getarticlelist.ajax',
+         	    type : 'post',
+         	    data : $('#article_form').serialize(),
+         	    success : function(data) {
+         	    	var articleList = data.articleList
+         	    	fn_displayArticleList(articleList);
+         	    	$('#write_button_area').show();
+         	    }
+            }); 
+		}
+		
+		function fn_displayArticleList(articleList) {
+			$('#article_area').empty();
+ 	    	$.each(articleList, function(index, article) {
+ 	    		var createDate = article.createDate;
+ 	    		var year = createDate.substr(0, 4);
+ 	    		var month = createDate.substr(4, 2);
+ 	    		var day = createDate.substr(6, 2);
+ 	    		var hour = createDate.substr(8, 2);
+ 	    		var min = createDate.substr(10, 2);
+ 	    		var id = 'kimjames';
+ 	    		var dispalyDate = year + "/" + month + "/" + day + " " + hour + ":" + min;
+               
+ 	    		var header = $('<div id="article_header"></div>').append('<label><b>' + id + '</b>&nbsp&nbsp&nbsp' + dispalyDate +'</label>')
+                                                                                 .append('<a class="article_header_close_icon"></a>')
+ 	    																		 .append('<a class="article_header_modify_icon"></a>');
+                var divline = '<div id="div_line"></div>';
+                var content = $('<div></div>').append(article.content);
+                var articleId = '<input type="hidden" name="articleId" value="' + article.articleId + '" /> ';
+				var articleForAppend = $('<article id="article_read" class="main_article"></article>').append(header, divline, content, articleId);
+				$('#article_area').append(articleForAppend); 
+				
+				$(header).find('a.article_header_modify_icon').click(function() {
+					fn_articleModifyButtonClickEvent($(articleId).val(), $(content).html());
+				});
+				
+				$(header).find('a.article_header_close_icon').click(function() {
+					fn_articleRemoveButtonClickEvent($(articleId).val());
+				});
+ 	    	});			
+		}
+		
+		function fn_articleModifyButtonClickEvent(articleId, content) {
+			$('#dialog-confirm-modify').css('visibility', 'visible');
+		    $('#dialog-confirm-modify').dialog({
+		    	dialogClass: "dialog-confirm-style",
+		        resizable: false,
+		        height:130,
+		        modal: true,
+		        buttons: {
+		            OK: function() {
+		                $(this).dialog("close");
+		                fn_articleEditorDialogPopupForModify(articleId, content);		                
+		            },
+		            Cancel: function() {
+		                $(this).dialog("close");
+		            }
+		        }
+		    });
+		}
+		
+		function fn_articleEditorDialogPopupForModify(articleId, content) {
+			$('#dialog-form').empty();
+			var textEditor = '<textarea id="editor" rows="14" autofocus></textarea>';
+			var article = $('<article id="article_write"></article>').append(textEditor);
+			$('#dialog-form').append(article);
+			
+			oEditors = [];
+			nhn.husky.EZCreator.createInIFrame({
+			    oAppRef: oEditors,
+			    elPlaceHolder: "editor",
+			    sSkinURI: "/doc/tools/smarteditor/SmartEditor2Skin.html",
+			    fCreator: "createSEditor2",
+ 		        fOnAppLoad: function() { 
+ 		            oEditors.getById["editor"].setIR(content);
+ 		            oEditors.getById["editor"].exec("FOCUS", []);
+ 		        } 			    
+			});
+			
+			dialog = $("#dialog-form").dialog({
+			     width: 774,
+			     modal: true,
+			     buttons: {
+			         modify: function() {
+			        	 fn_articleEditorModifyButtonClickEvent(articleId);
+			         },
+			         close: function() {
+			        	 $(this).dialog( "close" );
+			         }
+			     }
+			});			
+		}	
+		
+		function fn_articleEditorModifyButtonClickEvent(articleId) {
+			$('#dialog-confirm-modify').css('visibility', 'visible');
+		    $('#dialog-confirm-modify').dialog({
+		    	dialogClass: "dialog-confirm-style",
+		        resizable: false,
+		        height:130,
+		        modal: true,
+		        buttons: {
+		            OK: function() {
+		                $(this).dialog("close");
+		                $("#dialog-form").dialog( "close" );
+		            	fn_modifyArticle(articleId);
+		            },
+		            Cancel: function() {
+		                $(this).dialog("close");
+		            }
+		        }
+		    });					
+		}			
+		
+		function fn_modifyArticle(articleId) {
+            // 에디터의 내용이 textarea에 적용된다.
+            oEditors.getById["editor"].exec("UPDATE_CONTENTS_FIELD", []);
+            var editorValue = $('#editor').val();
+            $('#article_form > input[name="articleId"]').val(articleId);
+            $('#article_form > input[name="articleContent"]').val(editorValue);
+            $.ajax({
+            	url :  '/articlemgr/modifyarticle.ajax',
+            	type : 'post',
+            	data : $('#article_form').serialize(),
+            	success : function(data) {
+            		fn_getArticleList();
+            	}
+            });
+		}
+		
+		function fn_articleRemoveButtonClickEvent(articleId) {
+			$('#dialog-confirm-delete').css('visibility', 'visible');
+		    $('#dialog-confirm-delete').dialog({
+		    	dialogClass: "dialog-confirm-style",
+		        resizable: false,
+		        height:130,
+		        modal: true,
+		        buttons: {
+		            OK: function() {
+		                $(this).dialog("close");
+		                fn_removeArticle(articleId);
+		            },
+		            Cancel: function() {
+		                $(this).dialog("close");
+		            }
+		        }
+		    });			
+		}
+		
+		function fn_removeArticle(articleId) {
+            $('#article_form > input[name="articleId"]').val(articleId);
+            $.ajax({
+         	    url : '/articlemgr/removearticle.ajax',
+         	    type : 'post',
+         	    data : $('#article_form').serialize(),
+         	    success : function(data) {
+         	    	fn_getArticleList();
+         	    }
+            });
+		}
+		
+	</script>
+</head>
+
+<body>
+
+	<form id="article_form">
+		<input type="hidden" name="articleContent" value=""/>
+		<input type="hidden" name="articleId" value=""/>
+	</form>
+
+	<header id="main_header">
+		<div id="title">
+			<a href="http://localhost:8080"><h1>PLAYGROUND</h1></a>
+		</div>
+		<nav id="main_gnb">
+			<ul>
+				<li><a href="#"><b>Log-in</b></a></li>
+				<li><a href="#"><b>Member</b></a></li>
+			</ul>
+		</nav>
+		<nav id="main_lnb">
+			<ul>		
+				<li><a href="#"><b>MyStory</b></a></li>
+				<li><a href="#"><b>Friends</b></a></li>
+				<li><a href="#"><b>Visit</b></a></li>
+				<li><a href="#"><b>Informations</b></a></li>
+			</ul>			
+		</nav>
+	</header>
+	
+	<div id="content">
+	
+		<section id="main_section">
+			<div id="article_area">
+			</div>
+			<div id="write_button_area">
+				<input type="submit" id="write_button" value="Write"  >		
+			</div>
+		</section>
+		
+		<aside id="main_aside">
+			<input id="first" type="radio" name="tab" checked="checked" />
+			<input id="second" type="radio" name="tab" />
+			<section class="buttons">
+				<label for="first"><b>First</b></label>
+				<label for="second"><b>Second</b></label>
+			</section>
+			<div>
+				<ul>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Canvas</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Audio</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Video</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Semantic Web</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+				</ul>
+			</div>
+			<div class="tab_item">
+				<ul>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Transition</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Animation</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Border</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+					<li class="item">
+						<a href="#">
+							<div class="thumbnail">
+								<img src="http://placehold.it/45x45" />
+							</div>
+							<div class="description">
+								<strong>HTML5 Box</strong>
+								<p>2012-03-15</p>
+							</div>
+						</a>
+					</li>
+				</ul>
+			</div>
+		</aside>
+		
+	</div>
+	
+	<div id="article_write_layerpopup">	</div>
+	
+	<div id="common_area"></div>
+	
+	<footer id="main_footer">
+		<h3>PLAYGROUND Present</h3>
+		<address>www.playground.com</address>
+	</footer>
+	
+</body>
+</html>
