@@ -1,2 +1,2 @@
-# SimpleBlog1
-Simple Blog 1 (Jquery + Spring4 + Mybatis + MySql + jetty + Maven)
+# simple-blog
+simple-blog (Jquery + Spring4 + Mybatis + MySql + jetty + Maven)
